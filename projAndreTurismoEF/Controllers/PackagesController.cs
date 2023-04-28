@@ -25,22 +25,24 @@ namespace projAndreTurismoEF.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Package>>> GetPackage()
         {
-          if (_context.Package == null)
-          {
-              return NotFound();
-          }
-            return await _context.Package.ToListAsync();
+            if (_context.Package == null)
+            {
+                return NotFound();
+            }
+            return await _context.Package.Include(p => p.Hotel.Address.City).Include(p => p.Ticket.Departure.City).
+                Include(p => p.Ticket.Arrival.City).Include(p => p.Client.Address.City).ToListAsync();
         }
 
         // GET: api/Packages/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Package>> GetPackage(int id)
         {
-          if (_context.Package == null)
-          {
-              return NotFound();
-          }
-            var package = await _context.Package.FindAsync(id);
+            if (_context.Package == null)
+            {
+                return NotFound();
+            }
+            var package = await _context.Package.Include(p => p.Hotel.Address.City).Include(p => p.Ticket.Departure.City).
+                Include(p => p.Ticket.Arrival.City).Include(p => p.Client.Address.City).Where(p => p.Id == id).FirstOrDefaultAsync();
 
             if (package == null)
             {
@@ -86,10 +88,23 @@ namespace projAndreTurismoEF.Controllers
         [HttpPost]
         public async Task<ActionResult<Package>> PostPackage(Package package)
         {
-          if (_context.Package == null)
-          {
-              return Problem("Entity set 'projAndreTurismoEFContext.Package'  is null.");
-          }
+            if (_context.Package == null)
+            {
+                return Problem("Entity set 'projAndreTurismoEFContext.Package'  is null.");
+            }
+
+            var hotel = await new HotelsController(_context).GetHotel(package.Hotel.Id);
+            if (hotel != null)
+                package.Hotel = hotel.Value;
+
+            var ticket = await new TicketsController(_context).GetTicket(package.Ticket.Id);
+            if (ticket != null)
+                package.Ticket = ticket.Value;
+
+            var client = await new ClientsController(_context).GetClient(package.Client.Id);
+            if (client != null)
+                package.Client = client.Value;
+
             _context.Package.Add(package);
             await _context.SaveChangesAsync();
 

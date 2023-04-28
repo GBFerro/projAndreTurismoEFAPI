@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -25,22 +26,22 @@ namespace projAndreTurismoEF.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Client>>> GetClient()
         {
-          if (_context.Client == null)
-          {
-              return NotFound();
-          }
-            return await _context.Client.ToListAsync();
+            if (_context.Client == null)
+            {
+                return NotFound();
+            }
+            return await _context.Client.Include(c => c.Address.City).ToListAsync();
         }
 
         // GET: api/Clients/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Client>> GetClient(int id)
         {
-          if (_context.Client == null)
-          {
-              return NotFound();
-          }
-            var client = await _context.Client.FindAsync(id);
+            if (_context.Client == null)
+            {
+                return NotFound();
+            }
+            var client = await _context.Client.Include(c => c.Address.City).Where(c => c.Id == id).FirstOrDefaultAsync();
 
             if (client == null)
             {
@@ -86,10 +87,15 @@ namespace projAndreTurismoEF.Controllers
         [HttpPost]
         public async Task<ActionResult<Client>> PostClient(Client client)
         {
-          if (_context.Client == null)
-          {
-              return Problem("Entity set 'projAndreTurismoEFContext.Client'  is null.");
-          }
+            if (_context.Client == null)
+            {
+                return Problem("Entity set 'projAndreTurismoEFContext.Client'  is null.");
+            }
+
+            var address = await new AddressesController(_context).GetAddress(client.Address.Id);
+            if (address != null)
+                client.Address = address.Value;
+
             _context.Client.Add(client);
             await _context.SaveChangesAsync();
 

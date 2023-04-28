@@ -25,27 +25,25 @@ namespace projAndreTurismoEF.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Ticket>>> GetTicket()
         {
-          if (_context.Ticket == null)
-          {
-              return NotFound();
-          }
-            return await _context.Ticket.ToListAsync();
+            if (_context.Ticket == null)
+            {
+                return NotFound();
+            }
+            return await _context.Ticket.Include(t => t.Departure.City).Include(t => t.Arrival.City).ToListAsync();
         }
 
         // GET: api/Tickets/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Ticket>> GetTicket(int id)
         {
-          if (_context.Ticket == null)
-          {
-              return NotFound();
-          }
-            var ticket = await _context.Ticket.FindAsync(id);
-
-            if (ticket == null)
+            if (_context.Ticket == null)
             {
                 return NotFound();
             }
+            var ticket = await _context.Ticket.Include(t => t.Departure.City).Include(t => t.Arrival.City).Where(t => t.Id == id).FirstOrDefaultAsync();
+
+            if (ticket == null)
+                return NotFound();
 
             return ticket;
         }
@@ -86,10 +84,19 @@ namespace projAndreTurismoEF.Controllers
         [HttpPost]
         public async Task<ActionResult<Ticket>> PostTicket(Ticket ticket)
         {
-          if (_context.Ticket == null)
-          {
-              return Problem("Entity set 'projAndreTurismoEFContext.Ticket'  is null.");
-          }
+            if (_context.Ticket == null)
+            {
+                return Problem("Entity set 'projAndreTurismoEFContext.Ticket'  is null.");
+            }
+
+            var departure = await new AddressesController(_context).GetAddress(ticket.Departure.Id);
+            var arrival = await new AddressesController(_context).GetAddress(ticket.Arrival.Id);
+            if (departure != null)
+                ticket.Departure = departure.Value;
+
+            if (arrival != null)
+                ticket.Arrival = arrival.Value;
+
             _context.Ticket.Add(ticket);
             await _context.SaveChangesAsync();
 

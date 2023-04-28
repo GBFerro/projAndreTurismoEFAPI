@@ -25,22 +25,22 @@ namespace projAndreTurismoEF.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Address>>> GetAddress()
         {
-          if (_context.Address == null)
-          {
-              return NotFound();
-          }
-            return await _context.Address.ToListAsync();
+            if (_context.Address == null)
+            {
+                return NotFound();
+            }
+            return await _context.Address.Include(a => a.City).ToListAsync();
         }
 
         // GET: api/Addresses/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Address>> GetAddress(int id)
         {
-          if (_context.Address == null)
-          {
-              return NotFound();
-          }
-            var address = await _context.Address.FindAsync(id);
+            if (_context.Address == null)
+            {
+                return NotFound();
+            }
+            var address = await _context.Address.Include(a => a.City).Where(a => a.Id == id).FirstOrDefaultAsync();
 
             if (address == null)
             {
@@ -86,10 +86,15 @@ namespace projAndreTurismoEF.Controllers
         [HttpPost]
         public async Task<ActionResult<Address>> PostAddress(Address address)
         {
-          if (_context.Address == null)
-          {
-              return Problem("Entity set 'projAndreTurismoEFContext.Address'  is null.");
-          }
+            if (_context.Address == null)
+            {
+                return Problem("Entity set 'projAndreTurismoEFContext.Address'  is null.");
+            }
+
+            var city = await _context.City.Where(c => c.Id == address.City.Id).FirstOrDefaultAsync();
+            if (city != null)
+                address.City = city;
+
             _context.Address.Add(address);
             await _context.SaveChangesAsync();
 
